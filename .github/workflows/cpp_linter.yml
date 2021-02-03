@@ -1,0 +1,22 @@
+name: C++ lint
+
+on:
+  push:
+    branches-ignore:
+      - 'master'
+
+jobs:
+  build:
+    name: C++ Linter by Clang-Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Install clang-format
+        run: |
+          sudo apt install clang-format
+      - name: Run linter
+        run: |
+          CLANG_FORMAT_ROOT=. TEST=1 bash tools/clang_format_all_the_things.sh
+
