@@ -15,6 +15,12 @@ load("//third_party:cuda_configure.bzl", "cuda_configure")
 
 cuda_configure(name = "autoproduction_config_cuda")
 
+new_local_repository(
+    name = "opencv",
+    build_file = "@//third_party:opencv_linux.BUILD",
+    path = "/usr/local",
+)
+
 _BAZEL_TOOLCHAINS_VERSION = "4.0.0"
 
 http_archive(
