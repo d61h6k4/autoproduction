@@ -16,6 +16,7 @@ cc_test(
     ],
     deps = [
         ":chopper",
+        "//autoproduction/utils:cuda_helper",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
         "@opencv//:opencv",

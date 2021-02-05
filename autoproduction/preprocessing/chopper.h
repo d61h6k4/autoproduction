@@ -71,7 +71,7 @@ class ImageChopper {
         target_image_height_(target_image_height),
         target_image_width_(target_image_width) {}
 
-  NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst) {
+  NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst, NppStreamContext ctx) {
     constexpr int channel_num = 3;
 
     NppStatus st;
@@ -81,7 +81,7 @@ class ImageChopper {
     for (std::size_t ix = 0; ix < CropNumHeight * CropNumWidth; ++ix) {
       dst_ix = ix * target_image_size;
 
-      st = nppiResize_8u_C3R(
+      st = nppiResize_8u_C3R_Ctx(
           p_src, image_width_ * channel_num,
           NppiSize{.width = image_width_, .height = image_height_},
           image_grid_.cells_[ix], p_dst + dst_ix,
@@ -92,7 +92,7 @@ class ImageChopper {
                    .y = 0,
                    .width = target_image_width_,
                    .height = target_image_height_},
-          NPPI_INTER_NN);
+          NPPI_INTER_NN, ctx);
       if (st != NPP_SUCCESS) {
         return st;
       }
@@ -118,7 +118,7 @@ class ImageChopper<1, 1> {
         target_image_height_(target_image_height),
         target_image_width_(target_image_width) {}
 
-  NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst);
+  NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst, NppStreamContext ctx);
 
  private:
   int image_height_;

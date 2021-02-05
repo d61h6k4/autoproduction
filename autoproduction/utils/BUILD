@@ -2,6 +2,7 @@ cc_library(
     name = "cuda_helper",
     srcs = ["cuda_helper.cc"],
     hdrs = ["cuda_helper.h"],
+    visibility = ["//visibility:public"],
     linkstatic = 1,
     deps = [
         "@autoproduction_config_cuda//:cuda_headers",

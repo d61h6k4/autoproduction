@@ -1,5 +1,6 @@
 
 #include "autoproduction/preprocessing/chopper.h"
+#include "autoproduction/utils/cuda_helper.h"
 
 #include <cuda_runtime_api.h>
 #include <stddef.h>
@@ -79,8 +80,19 @@ class ImageChopperTest : public ::testing::Test {
  protected:
   void SetUp() override {
     img_ = cv::imread("test_data/frames_0001.png", cv::IMREAD_COLOR);
+    int device_id = 0;
+    cudaError_t st = cudaSetDevice(device_id);
+    EXPECT_TRUE(st == cudaSuccess);
+
+    cudaStream_t cuda_stream;
+    st = cudaStreamCreate(&cuda_stream);
+    EXPECT_TRUE(st == cudaSuccess);
+
+    ctx_ =
+        Autoproduction::Util::fromCudaStreamAndDeviceId(cuda_stream, device_id);
   }
   cv::Mat img_;
+  NppStreamContext ctx_;
 };
 
 TEST_F(ImageChopperTest, SimpleResize) {
@@ -107,12 +119,22 @@ TEST_F(ImageChopperTest, SimpleResize) {
   }
   cv::cuda::GpuMat cuda_dest_img(target_height, target_width, CV_8UC3,
                                  dest_ptr);
-  auto npp_st = chopper(img_ptr, dest_ptr);
+  auto npp_st = chopper(img_ptr, dest_ptr, ctx_);
   EXPECT_EQ(npp_st, NPP_SUCCESS);
 
-  cv::Mat cpu_img;
-  cuda_dest_img.download(cpu_img);
-  cv::imwrite("/tmp/output.png", cpu_img);
+  cv::Mat res;
+  cuda_dest_img.download(res);
+
+  cv::Mat exp = cv::imread("test_data/frames_0001_rescaled_1x1_720x1280.png");
+
+  cv::Mat dst;
+  cv::bitwise_xor(exp, res, dst);
+
+  cv::Mat channels[3];
+  cv::split(dst, channels);
+  EXPECT_EQ(0, cv::countNonZero(channels[0]));
+  EXPECT_EQ(0, cv::countNonZero(channels[1]));
+  EXPECT_EQ(0, cv::countNonZero(channels[2]));
 }
 
 TEST_F(ImageChopperTest, ChopAndResize1x3) {
@@ -139,12 +161,22 @@ TEST_F(ImageChopperTest, ChopAndResize1x3) {
   }
   cv::cuda::GpuMat cuda_dest_img(3 * target_height, target_width, CV_8UC3,
                                  dest_ptr);
-  auto npp_st = chopper(img_ptr, dest_ptr);
+  auto npp_st = chopper(img_ptr, dest_ptr, ctx_);
   EXPECT_EQ(npp_st, NPP_SUCCESS);
 
-  cv::Mat cpu_img;
-  cuda_dest_img.download(cpu_img);
-  cv::imwrite("/tmp/output_1_3.png", cpu_img);
+  cv::Mat res;
+  cuda_dest_img.download(res);
+
+  cv::Mat exp = cv::imread("test_data/frames_0001_rescaled_1x3_720x1280.png");
+
+  cv::Mat dst;
+  cv::bitwise_xor(exp, res, dst);
+
+  cv::Mat channels[3];
+  cv::split(dst, channels);
+  EXPECT_EQ(0, cv::countNonZero(channels[0]));
+  EXPECT_EQ(0, cv::countNonZero(channels[1]));
+  EXPECT_EQ(0, cv::countNonZero(channels[2]));
 }
 
 }  // namespace Preprocessing

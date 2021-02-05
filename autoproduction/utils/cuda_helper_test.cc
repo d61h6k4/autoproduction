@@ -5,7 +5,7 @@
 
 #include "gtest/gtest.h"
 
-namespace Autproduction {
+namespace Autoproduction {
 namespace Util {
 TEST(FromCudaStreamTest, SanityCheck) {
   int device_id = 0;
@@ -21,4 +21,4 @@ TEST(FromCudaStreamTest, SanityCheck) {
   EXPECT_EQ(device_id, ctx.nCudaDeviceId);
 }
 }  // namespace Util
-}  // namespace Autproduction
+}  // namespace Autoproduction

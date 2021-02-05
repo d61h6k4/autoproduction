@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-namespace Autproduction {
+namespace Autoproduction {
 namespace Util {
 NppStreamContext fromCudaStreamAndDeviceId(cudaStream_t cuda_stream,
                                            int device_id) {
@@ -73,4 +73,4 @@ NppStreamContext fromCudaStreamAndDeviceId(cudaStream_t cuda_stream,
   return ctx;
 }
 }  // namespace Util
-}  // namespace Autproduction
+}  // namespace Autoproduction
