@@ -109,6 +109,12 @@ cc_library(
     srcs = ["cuda/lib64/libnppig.so"],
     deps = [":npp_core"],
 )
+
+cc_library(
+    name = "nppi_data_exchange_and_initialization",
+    srcs = ["cuda/lib64/libnppidei.so"],
+    deps = [":npp_core"],
+)
 """)
 
 cuda_configure = repository_rule(

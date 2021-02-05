@@ -60,6 +60,13 @@ struct Grid {
   std::array<NppiRect, CropNumHeight * CropNumWidth> cells_;
 };
 
+// ImageChopper - chops the given image by grid according the
+// given row and column num. Return the crops as a batch
+// of images.
+//
+// Grid's cells overlap (you can find more in tests)
+//
+// !NOTE: works only for unsigned int 3 channel images.
 template <int CropNumHeight, int CropNumWidth>
 class ImageChopper {
  public:
@@ -108,6 +115,9 @@ class ImageChopper {
   int target_image_width_;
 };
 
+// Special version of image chopper because
+// grid 1x1 is nogrid.
+// This class equal to Resize
 template <>
 class ImageChopper<1, 1> {
  public:

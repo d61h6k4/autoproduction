@@ -1,5 +1,5 @@
 
-#include "autoproduction/preprocessing/chopper.h"
+#include "autoproduction/preprocessing/image_chopper.h"
 #include "autoproduction/utils/cuda_helper.h"
 
 #include <cuda_runtime_api.h>
