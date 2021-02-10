@@ -87,7 +87,8 @@ TEST_F(TrtEngineTest, SanityCheck) {
       target_height, target_width, columns_num)(dest_ptr, converted_ptr, ctx_);
   EXPECT_EQ(npp_st, NPP_SUCCESS);
 
-  TrtEngine trt_engine(path_to_the_model_, logger_, cuda_stream_);
+  TrtEngine trt_engine(path_to_the_model_, columns_num, target_height,
+                       target_width, 3, logger_, cuda_stream_);
   std::cerr << "Ready to apply" << std::endl;
 
   auto dets = trt_engine(converted_ptr);

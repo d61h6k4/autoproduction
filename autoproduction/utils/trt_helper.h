@@ -1,3 +1,4 @@
+#pragma once
 
 #include <cuda_runtime_api.h>
 #include <memory>
@@ -22,7 +23,8 @@ using Detections = std::vector<Detection>;
 
 class TrtEngine {
  public:
-  TrtEngine(const std::string& path_to_the_model,
+  TrtEngine(const std::string& path_to_the_model, int batch_size,
+            int image_height, int image_width, int image_channel,
             std::shared_ptr<nvinfer1::ILogger> logger, cudaStream_t stream);
   ~TrtEngine();
 
@@ -40,10 +42,10 @@ class TrtEngine {
   std::shared_ptr<nvinfer1::ICudaEngine> engine_;
   std::shared_ptr<nvinfer1::IExecutionContext> context_;
 
-  int batch_size_ = 3;
-  int image_height_ = 800;
-  int image_width_ = 1280;
-  int image_channel_ = 3;
+  int batch_size_;
+  int image_height_;
+  int image_width_;
+  int image_channel_;
   int output_detections_num_;
   int output_detections_size_;
 

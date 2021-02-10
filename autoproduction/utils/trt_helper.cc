@@ -5,13 +5,19 @@
 
 namespace Autoproduction {
 namespace Util {
-TrtEngine::TrtEngine(const std::string& path_to_the_model,
+TrtEngine::TrtEngine(const std::string& path_to_the_model, int batch_size,
+                     int image_height, int image_width, int image_channel,
                      std::shared_ptr<nvinfer1::ILogger> logger,
                      cudaStream_t stream) {
   if (!logger) {
     throw std::runtime_error("logger can not be nullptr.");
   }
   logger_ = std::move(logger);
+
+  batch_size_ = batch_size;
+  image_height_ = image_height;
+  image_width_ = image_width;
+  image_channel_ = image_channel;
 
   cuda_stream_ = stream;
 

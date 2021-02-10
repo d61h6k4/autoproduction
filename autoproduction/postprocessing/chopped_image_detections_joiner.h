@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include "autoproduction/preprocessing/image_grid.h"
 #include "autoproduction/utils/detection.h"

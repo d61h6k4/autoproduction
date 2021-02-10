@@ -1,3 +1,5 @@
+#pragma once
+
 namespace Autoproduction {
 namespace Util {
 struct NormalizedBBox {
