@@ -15,6 +15,11 @@ load("//third_party:cuda_configure.bzl", "cuda_configure")
 
 cuda_configure(name = "autoproduction_config_cuda")
 
+load("//third_party:tensorrt_configure.bzl", "tensorrt_configure")
+
+tensorrt_configure(name = "autoproduction_config_tensorrt")
+
+
 new_local_repository(
     name = "opencv",
     build_file = "@//third_party:opencv_linux.BUILD",
