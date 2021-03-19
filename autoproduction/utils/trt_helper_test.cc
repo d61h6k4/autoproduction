@@ -48,7 +48,7 @@ class TrtEngineTest : public ::testing::Test {
 };
 
 TEST_F(TrtEngineTest, SanityCheck) {
-  int target_height = 800;
+  int target_height = 768;
   int target_width = 1280;
 
   constexpr int rows_num = 1;
@@ -91,9 +91,16 @@ TEST_F(TrtEngineTest, SanityCheck) {
                        target_width, 3, logger_, cuda_stream_);
   std::cerr << "Ready to apply" << std::endl;
 
-  auto dets = trt_engine(converted_ptr);
-  EXPECT_EQ(3, dets.size());
+  auto batched_dets = trt_engine(converted_ptr);
+  EXPECT_EQ(3, batched_dets.size());
+  for (const auto& dets : batched_dets) {
+    for (const auto& det : dets) {
+      std::cout << det.bbox_.ymin_ << " " << det.bbox_.xmin_ << " "
+                << det.bbox_.ymax_ << " " << det.bbox_.xmax_ << std::endl;
+      std::cout << det.score_ << std::endl;
+    }
+    std::cout << "----" << std::endl;
+  }
 }
-
 }  // namespace Util
 }  // namespace Autoproduction

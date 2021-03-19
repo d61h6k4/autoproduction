@@ -19,7 +19,6 @@ load("//third_party:tensorrt_configure.bzl", "tensorrt_configure")
 
 tensorrt_configure(name = "autoproduction_config_tensorrt")
 
-
 new_local_repository(
     name = "opencv",
     build_file = "@//third_party:opencv_linux.BUILD",
@@ -36,33 +35,33 @@ http_archive(
         "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/releases/download/{}/bazel-toolchains-{}.tar.gz".format(_BAZEL_TOOLCHAINS_VERSION, _BAZEL_TOOLCHAINS_VERSION),
     ],
 )
-
-# Build against Kythe master.  Run `bazel sync` to update to the latest commit.
-http_archive(
-    name = "io_kythe",
-    strip_prefix = "kythe-master",
-    urls = ["https://github.com/google/kythe/archive/master.zip"],
-)
-
-load("@io_kythe//:setup.bzl", "kythe_rule_repositories", "maybe")
-
-kythe_rule_repositories()
-
-# TODO(d61h6k4): remove this, when kythe will resolve it.
-# This needs to be loaded before loading the
-# go_* rules.  Normally, this is done by go_rules_dependencies in external.bzl,
-# but because we want to overload some of those dependencies, we need the go_*
-# rules before go_rules_dependencies.  Likewise, we can't precisely control
-# when loads occur within a Starlark file so we now need to load this
-# manually...
-load("@io_bazel_rules_go//go/private:repositories.bzl", "go_name_hack")
-
-maybe(
-    go_name_hack,
-    name = "io_bazel_rules_go_name_hack",
-    is_rules_go = False,
-)
-
-load("@io_kythe//:external.bzl", "kythe_dependencies")
-
-kythe_dependencies()
+#
+## Build against Kythe master.  Run `bazel sync` to update to the latest commit.
+#http_archive(
+#    name = "io_kythe",
+#    strip_prefix = "kythe-master",
+#    urls = ["https://github.com/kythe/kythe/archive/master.zip"],
+#)
+#
+#load("@io_kythe//:setup.bzl", "kythe_rule_repositories", "maybe")
+#
+#kythe_rule_repositories()
+#
+## TODO(d61h6k4): remove this, when kythe will resolve it.
+## This needs to be loaded before loading the
+## go_* rules.  Normally, this is done by go_rules_dependencies in external.bzl,
+## but because we want to overload some of those dependencies, we need the go_*
+## rules before go_rules_dependencies.  Likewise, we can't precisely control
+## when loads occur within a Starlark file so we now need to load this
+## manually...
+#load("@io_bazel_rules_go//go/private:repositories.bzl", "go_name_hack")
+#
+#maybe(
+#    go_name_hack,
+#    name = "io_bazel_rules_go_name_hack",
+#    is_rules_go = False,
+#)
+#
+#load("@io_kythe//:external.bzl", "kythe_dependencies")
+#
+#kythe_dependencies()

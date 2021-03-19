@@ -33,7 +33,10 @@ class TrtEngine {
  private:
   void BuildEngine(const std::string& path_to_the_model);
   void SetModel();
-  std::vector<Detections> Postprocess(const std::vector<float>& raw_detections);
+  std::vector<Detections> Postprocess(const std::vector<float>& detection_boxes,
+                                      const std::vector<float>& scores,
+                                      const std::vector<float>& classes,
+                                      const std::vector<float>& num_detections);
 
  private:
   cudaStream_t cuda_stream_;
@@ -46,10 +49,17 @@ class TrtEngine {
   int image_height_;
   int image_width_;
   int image_channel_;
-  int output_detections_num_;
-  int output_detections_size_;
 
-  float* output_layer_;
+  int detection_boxes_num_;
+  int detection_boxes_size_;
+  int scores_num_;
+  int classes_num_;
+  int num_detections_size_;
+
+  float* detection_boxes_layer_;
+  float* scores_layer_;
+  float* classes_layer_;
+  float* num_detections_layer_;
 };
 
 }  // namespace Util

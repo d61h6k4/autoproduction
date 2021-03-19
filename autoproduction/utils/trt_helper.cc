@@ -75,55 +75,118 @@ void TrtEngine::SetModel() {
     throw std::runtime_error("Failed to create execution context");
   }
 
-  int input_index = engine_->getBindingIndex("image:0");
+  int input_index = engine_->getBindingIndex("inputs:0");
   auto input_dim = engine_->getBindingDimensions(input_index);
   if (batch_size_ != input_dim.d[0] || image_height_ != input_dim.d[1] ||
       image_width_ != input_dim.d[2] || image_channel_ != input_dim.d[3]) {
     throw std::runtime_error("The model input and TrtEngine input don't match");
   }
 
-  int output_index = engine_->getBindingIndex("Identity:0");
-  auto output_dim = engine_->getBindingDimensions(output_index);
-  output_detections_num_ = output_dim.d[1];
-  output_detections_size_ = output_dim.d[2];
-  if (batch_size_ != output_dim.d[0] || output_detections_size_ != 7) {
-    throw std::runtime_error("The model output doesn't match with expectation");
+  {
+    int detection_boxes_index = engine_->getBindingIndex("Identity:0");
+    auto detection_boxes_dim =
+        engine_->getBindingDimensions(detection_boxes_index);
+    detection_boxes_num_ = detection_boxes_dim.d[1];
+    detection_boxes_size_ = detection_boxes_dim.d[2];
+    if (batch_size_ != detection_boxes_dim.d[0] || detection_boxes_size_ != 4) {
+      throw std::runtime_error(
+          "The model output (detection boxes) doesn't match with expectation");
+    }
+
+    size_t output_size = batch_size_ * detection_boxes_num_ *
+                         detection_boxes_size_ * sizeof(float);
+
+    auto st = cudaMalloc(reinterpret_cast<void**>(&detection_boxes_layer_),
+                         output_size);
+    if (st != cudaSuccess) {
+      throw std::runtime_error("Could not allocate output layer");
+    }
+  }
+  {
+    int scores_index = engine_->getBindingIndex("Identity_1:0");
+    auto scores_dim = engine_->getBindingDimensions(scores_index);
+    scores_num_ = scores_dim.d[1];
+    if (batch_size_ != scores_dim.d[0]) {
+      throw std::runtime_error(
+          "The model output (detection scores) doesn't match with expectation");
+    }
+
+    size_t output_size = batch_size_ * scores_num_ * sizeof(float);
+
+    auto st = cudaMalloc(reinterpret_cast<void**>(&scores_layer_), output_size);
+    if (st != cudaSuccess) {
+      throw std::runtime_error("Could not allocate output layer");
+    }
   }
 
-  size_t output_size = batch_size_ * output_detections_num_ *
-                       output_detections_size_ * sizeof(float);
+  {
+    int classes_index = engine_->getBindingIndex("Identity_2:0");
+    auto classes_dim = engine_->getBindingDimensions(classes_index);
+    classes_num_ = classes_dim.d[1];
+    if (batch_size_ != classes_dim.d[0]) {
+      throw std::runtime_error(
+          "The model output (detection classes) doesn't match with "
+          "expectation");
+    }
 
-  auto st = cudaMalloc(reinterpret_cast<void**>(&output_layer_), output_size);
-  if (st != cudaSuccess) {
-    throw std::runtime_error("Could not allocate output layer");
+    size_t output_size = batch_size_ * classes_num_ * sizeof(float);
+
+    auto st =
+        cudaMalloc(reinterpret_cast<void**>(&classes_layer_), output_size);
+    if (st != cudaSuccess) {
+      throw std::runtime_error("Could not allocate output layer");
+    }
+  }
+
+  {
+    int num_detections_index = engine_->getBindingIndex("Identity_3:0");
+    auto num_detections_dim =
+        engine_->getBindingDimensions(num_detections_index);
+    num_detections_size_ = num_detections_dim.d[1];
+    if (batch_size_ != num_detections_dim.d[0]) {
+      throw std::runtime_error(
+          "The model output (detection num) doesn't match with expectation");
+    }
+
+    size_t output_size = batch_size_ * num_detections_size_ * sizeof(float);
+    auto st = cudaMalloc(reinterpret_cast<void**>(&num_detections_layer_),
+                         output_size);
+    if (st != cudaSuccess) {
+      throw std::runtime_error("Could not allocate output layer");
+    }
   }
 }
 
 std::vector<Detections> TrtEngine::Postprocess(
-    const std::vector<float>& output) {
+    const std::vector<float>& detection_boxes, const std::vector<float>& scores,
+    const std::vector<float>& classes,
+    const std::vector<float>& num_detections) {
   std::vector<Detections> detections(batch_size_);
   for (auto batch_ix = 0; batch_ix < batch_size_; ++batch_ix) {
-    int batch_output_start_ix =
-        batch_ix * output_detections_num_ * output_detections_size_;
+    int batch_output_start_ix = batch_ix * detection_boxes_num_;
 
     // detections_num is stored as a 7-th value
-    int detections_num = static_cast<int>(output[batch_output_start_ix + 6]);
+    int detections_num = static_cast<int>(num_detections[batch_ix]);
     detections[batch_ix].reserve(detections_num);
     for (auto detection_ix = 0; detection_ix < detections_num; ++detection_ix) {
       auto in_batch_detection_ix =
-          batch_output_start_ix + detection_ix * output_detections_size_;
-      detections[batch_ix].push_back(Detection(
-          output[in_batch_detection_ix + 0], output[in_batch_detection_ix + 1],
-          output[in_batch_detection_ix + 2], output[in_batch_detection_ix + 3],
-          output[in_batch_detection_ix + 4],
-          output[in_batch_detection_ix + 5]));
+          batch_output_start_ix * detection_boxes_size_ +
+          detection_ix * detection_boxes_size_;
+      detections[batch_ix].push_back(
+          Detection(detection_boxes[in_batch_detection_ix + 0],
+                    detection_boxes[in_batch_detection_ix + 1],
+                    detection_boxes[in_batch_detection_ix + 2],
+                    detection_boxes[in_batch_detection_ix + 3],
+                    scores[batch_output_start_ix + detection_ix],
+                    classes[batch_output_start_ix + detection_ix]));
     }
   }
   return detections;
 }
 
 std::vector<Detections> TrtEngine::operator()(float* img) {
-  void* buffers[2] = {img, output_layer_};
+  void* buffers[5] = {img, detection_boxes_layer_, scores_layer_,
+                      classes_layer_, num_detections_layer_};
   bool status = context_->enqueueV2(buffers, cuda_stream_, nullptr);
 
   if (!status) {
@@ -132,17 +195,56 @@ std::vector<Detections> TrtEngine::operator()(float* img) {
     return {};
   }
 
-  size_t output_size =
-      batch_size_ * output_detections_num_ * output_detections_size_;
-  std::vector<float> output(output_size);
+  size_t detection_boxes_size =
+      batch_size_ * detection_boxes_num_ * detection_boxes_size_;
+
+  std::vector<float> detection_boxes(detection_boxes_size);
   cudaError_t st =
-      cudaMemcpyAsync(output.data(), output_layer_, output_size * sizeof(float),
+      cudaMemcpyAsync(detection_boxes.data(), detection_boxes_layer_,
+                      detection_boxes_size * sizeof(float),
                       cudaMemcpyDeviceToHost, cuda_stream_);
   if (st != cudaSuccess) {
     logger_->log(nvinfer1::ILogger::Severity::kERROR,
-                 "Failed to copy data from output layer");
+                 "Failed to copy data from detection_boxes layer");
     return {};
   }
+
+  size_t scores_size = batch_size_ * scores_num_;
+
+  std::vector<float> scores(scores_size);
+  st =
+      cudaMemcpyAsync(scores.data(), scores_layer_, scores_size * sizeof(float),
+                      cudaMemcpyDeviceToHost, cuda_stream_);
+  if (st != cudaSuccess) {
+    logger_->log(nvinfer1::ILogger::Severity::kERROR,
+                 "Failed to copy data from scores layer");
+    return {};
+  }
+
+  size_t classes_size = batch_size_ * classes_num_;
+
+  std::vector<float> classes(classes_size);
+  st = cudaMemcpyAsync(classes.data(), classes_layer_,
+                       classes_size * sizeof(float), cudaMemcpyDeviceToHost,
+                       cuda_stream_);
+  if (st != cudaSuccess) {
+    logger_->log(nvinfer1::ILogger::Severity::kERROR,
+                 "Failed to copy data from classes layer");
+    return {};
+  }
+
+  size_t num_detections_size = batch_size_ * num_detections_size_;
+
+  std::vector<float> num_detections(num_detections_size);
+  st = cudaMemcpyAsync(num_detections.data(), num_detections_layer_,
+                       num_detections_size * sizeof(float),
+                       cudaMemcpyDeviceToHost, cuda_stream_);
+  if (st != cudaSuccess) {
+    logger_->log(nvinfer1::ILogger::Severity::kERROR,
+                 "Failed to copy data from num_detection layer");
+    return {};
+  }
+
   st = cudaStreamSynchronize(cuda_stream_);
   if (st != cudaSuccess) {
     logger_->log(nvinfer1::ILogger::Severity::kERROR,
@@ -150,9 +252,9 @@ std::vector<Detections> TrtEngine::operator()(float* img) {
     return {};
   }
 
-  return Postprocess(output);
+  return Postprocess(detection_boxes, scores, classes, num_detections);
 }
 
-TrtEngine::~TrtEngine() { cudaFree(output_layer_); }
+TrtEngine::~TrtEngine() { cudaFree(detection_boxes_layer_); }
 }  // namespace Util
 }  // namespace Autoproduction
