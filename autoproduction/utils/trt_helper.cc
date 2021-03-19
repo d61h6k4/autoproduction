@@ -83,11 +83,12 @@ void TrtEngine::SetModel() {
   }
 
   {
-    int detection_boxes_index = engine_->getBindingIndex("Identity:0");
+    int detection_boxes_index = engine_->getBindingIndex("detection_boxes");
     auto detection_boxes_dim =
         engine_->getBindingDimensions(detection_boxes_index);
     detection_boxes_num_ = detection_boxes_dim.d[1];
     detection_boxes_size_ = detection_boxes_dim.d[2];
+
     if (batch_size_ != detection_boxes_dim.d[0] || detection_boxes_size_ != 4) {
       throw std::runtime_error(
           "The model output (detection boxes) doesn't match with expectation");
@@ -103,9 +104,10 @@ void TrtEngine::SetModel() {
     }
   }
   {
-    int scores_index = engine_->getBindingIndex("Identity_1:0");
+    int scores_index = engine_->getBindingIndex("detection_scores");
     auto scores_dim = engine_->getBindingDimensions(scores_index);
     scores_num_ = scores_dim.d[1];
+
     if (batch_size_ != scores_dim.d[0]) {
       throw std::runtime_error(
           "The model output (detection scores) doesn't match with expectation");
@@ -120,7 +122,7 @@ void TrtEngine::SetModel() {
   }
 
   {
-    int classes_index = engine_->getBindingIndex("Identity_2:0");
+    int classes_index = engine_->getBindingIndex("detection_classes");
     auto classes_dim = engine_->getBindingDimensions(classes_index);
     classes_num_ = classes_dim.d[1];
     if (batch_size_ != classes_dim.d[0]) {
@@ -139,10 +141,11 @@ void TrtEngine::SetModel() {
   }
 
   {
-    int num_detections_index = engine_->getBindingIndex("Identity_3:0");
+    int num_detections_index = engine_->getBindingIndex("num_detections");
     auto num_detections_dim =
         engine_->getBindingDimensions(num_detections_index);
     num_detections_size_ = num_detections_dim.d[1];
+
     if (batch_size_ != num_detections_dim.d[0]) {
       throw std::runtime_error(
           "The model output (detection num) doesn't match with expectation");
@@ -166,7 +169,7 @@ std::vector<Detections> TrtEngine::Postprocess(
     int batch_output_start_ix = batch_ix * detection_boxes_num_;
 
     // detections_num is stored as a 7-th value
-    int detections_num = static_cast<int>(num_detections[batch_ix]);
+    int detections_num = 100;  // static_cast<int>(num_detections[batch_ix]);
     detections[batch_ix].reserve(detections_num);
     for (auto detection_ix = 0; detection_ix < detections_num; ++detection_ix) {
       auto in_batch_detection_ix =
@@ -185,8 +188,8 @@ std::vector<Detections> TrtEngine::Postprocess(
 }
 
 std::vector<Detections> TrtEngine::operator()(float* img) {
-  void* buffers[5] = {img, detection_boxes_layer_, scores_layer_,
-                      classes_layer_, num_detections_layer_};
+  void* buffers[5] = {img, num_detections_layer_, detection_boxes_layer_,
+                      scores_layer_, classes_layer_};
   bool status = context_->enqueueV2(buffers, cuda_stream_, nullptr);
 
   if (!status) {
@@ -194,7 +197,6 @@ std::vector<Detections> TrtEngine::operator()(float* img) {
                  "Failed to call TRT engine");
     return {};
   }
-
   size_t detection_boxes_size =
       batch_size_ * detection_boxes_num_ * detection_boxes_size_;
 
@@ -220,7 +222,6 @@ std::vector<Detections> TrtEngine::operator()(float* img) {
                  "Failed to copy data from scores layer");
     return {};
   }
-
   size_t classes_size = batch_size_ * classes_num_;
 
   std::vector<float> classes(classes_size);

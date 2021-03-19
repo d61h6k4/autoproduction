@@ -35,7 +35,7 @@ class TrtEngineTest : public ::testing::Test {
 
     logger_ = std::make_shared<Logger>();
 
-    img_ = cv::imread("test_data/frames_0001.png", cv::IMREAD_COLOR);
+    img_ = cv::imread("test_data/football_0001.png", cv::IMREAD_COLOR);
     ctx_ = Autoproduction::Util::fromCudaStreamAndDeviceId(cuda_stream_,
                                                            device_id);
   }
