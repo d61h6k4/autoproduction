@@ -176,10 +176,14 @@ std::vector<Detections> TrtEngine::Postprocess(
           batch_output_start_ix * detection_boxes_size_ +
           detection_ix * detection_boxes_size_;
       detections[batch_ix].push_back(
-          Detection(detection_boxes[in_batch_detection_ix + 0],
-                    detection_boxes[in_batch_detection_ix + 1],
-                    detection_boxes[in_batch_detection_ix + 2],
-                    detection_boxes[in_batch_detection_ix + 3],
+          Detection(detection_boxes[in_batch_detection_ix + 0] /
+                        static_cast<float>(image_height_),
+                    detection_boxes[in_batch_detection_ix + 1] /
+                        static_cast<float>(image_width_),
+                    detection_boxes[in_batch_detection_ix + 2] /
+                        static_cast<float>(image_height_),
+                    detection_boxes[in_batch_detection_ix + 3] /
+                        static_cast<float>(image_width_),
                     scores[batch_output_start_ix + detection_ix],
                     classes[batch_output_start_ix + detection_ix]));
     }
