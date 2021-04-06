@@ -49,7 +49,7 @@ class TrtEngineTest : public ::testing::Test {
 
 TEST_F(TrtEngineTest, SanityCheck) {
   int target_height = 640;
-  int target_width =640;
+  int target_width = 640;
 
   constexpr int rows_num = 1;
   constexpr int columns_num = 5;
