@@ -48,11 +48,11 @@ class TrtEngineTest : public ::testing::Test {
 };
 
 TEST_F(TrtEngineTest, SanityCheck) {
-  int target_height = 768;
-  int target_width = 1280;
+  int target_height = 640;
+  int target_width =640;
 
   constexpr int rows_num = 1;
-  constexpr int columns_num = 3;
+  constexpr int columns_num = 5;
   auto chopper =
       Autoproduction::Preprocessing::ImageChopper<rows_num, columns_num>(
           img_.rows, img_.cols, target_height, target_width);
@@ -88,11 +88,11 @@ TEST_F(TrtEngineTest, SanityCheck) {
   EXPECT_EQ(npp_st, NPP_SUCCESS);
 
   TrtEngine trt_engine(path_to_the_model_, columns_num, target_height,
-                       target_width, 3, logger_, cuda_stream_);
+                       target_width, rows_num * columns_num, logger_, cuda_stream_);
   std::cerr << "Ready to apply" << std::endl;
 
   auto batched_dets = trt_engine(converted_ptr);
-  EXPECT_EQ(3, batched_dets.size());
+  EXPECT_EQ(rows_num * columns_num, batched_dets.size());
   for (const auto& dets : batched_dets) {
     for (const auto& det : dets) {
       std::cout << det.bbox_.ymin_ << " " << det.bbox_.xmin_ << " "
