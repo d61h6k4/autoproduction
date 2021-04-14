@@ -73,5 +73,11 @@ TEST_F(GridTest, Grid2x3) {
   EXPECT_EQ(2432.f, g.cells_[5].x);
 }
 
+TEST_F(GridTest, Grid1x5) {
+  Grid<1, 5> g(static_cast<float>(ORIG_IMAGE_HEIGHT),
+               static_cast<float>(ORIG_IMAGE_WIDTH));
+  EXPECT_EQ(845, g.target_width_);
+}
+
 }  // namespace Preprocessing
 }  // namespace Autoproduction

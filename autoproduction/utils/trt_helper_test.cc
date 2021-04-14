@@ -48,14 +48,16 @@ class TrtEngineTest : public ::testing::Test {
 };
 
 TEST_F(TrtEngineTest, SanityCheck) {
-  int target_height = 640;
-  int target_width = 640;
+  int target_height = 800;
+  int target_width = 845;
 
   constexpr int rows_num = 1;
   constexpr int columns_num = 5;
   auto chopper =
       Autoproduction::Preprocessing::ImageChopper<rows_num, columns_num>(
-          img_.rows, img_.cols, target_height, target_width);
+          img_.rows, img_.cols);
+
+  EXPECT_EQ(target_width, chopper.TargetWidth());
 
   Npp8u* img_ptr;
   size_t input_size = img_.rows * img_.cols * img_.channels() * sizeof(char);
@@ -88,7 +90,7 @@ TEST_F(TrtEngineTest, SanityCheck) {
   EXPECT_EQ(npp_st, NPP_SUCCESS);
 
   TrtEngine trt_engine(path_to_the_model_, columns_num, target_height,
-                       target_width, 3, logger_, cuda_stream_);
+                       target_width, 640, 640, 3, logger_, cuda_stream_);
   std::cerr << "Ready to apply" << std::endl;
 
   auto batched_dets = trt_engine(converted_ptr);
@@ -97,7 +99,15 @@ TEST_F(TrtEngineTest, SanityCheck) {
     for (const auto& det : dets) {
       std::cout << det.bbox_.ymin_ << " " << det.bbox_.xmin_ << " "
                 << det.bbox_.ymax_ << " " << det.bbox_.xmax_ << std::endl;
-      std::cout << det.score_ << std::endl;
+      auto cls_name = "unk";
+      if (det.class_name_ == Autoproduction::Util::ClassName::person_) {
+        cls_name = "person";
+      } else if (det.class_name_ ==
+                 Autoproduction::Util::ClassName::sport_ball_) {
+        cls_name = "sports ball";
+      }
+
+      std::cout << det.score_ << " " << cls_name << std::endl;
     }
     std::cout << "----" << std::endl;
   }

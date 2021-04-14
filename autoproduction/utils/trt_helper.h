@@ -24,7 +24,8 @@ using Detections = std::vector<Detection>;
 class TrtEngine {
  public:
   TrtEngine(const std::string& path_to_the_model, int batch_size,
-            int image_height, int image_width, int image_channel,
+            int image_height, int image_width, int model_image_height,
+            int model_image_width, int image_channel,
             std::shared_ptr<nvinfer1::ILogger> logger, cudaStream_t stream);
   ~TrtEngine();
 
@@ -46,8 +47,15 @@ class TrtEngine {
   std::shared_ptr<nvinfer1::IExecutionContext> context_;
 
   int batch_size_;
+  // These are input image size
   int image_height_;
   int image_width_;
+
+  // These are output (model) image size
+  // they may be differ then input image size
+  // because model may have resize step
+  int model_image_height_;
+  int model_image_width_;
   int image_channel_;
 
   int detection_boxes_num_;

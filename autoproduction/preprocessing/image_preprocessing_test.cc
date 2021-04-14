@@ -33,12 +33,11 @@ class ImagePreprocessingEndToEndTest : public ::testing::Test {
 
 TEST_F(ImagePreprocessingEndToEndTest, ChopAndResize1x3AndConvert) {
   int target_height = 800;
-  int target_width = 1280;
+  int target_width = 1408;
 
   constexpr int rows_num = 1;
   constexpr int columns_num = 3;
-  auto chopper = ImageChopper<rows_num, columns_num>(
-      img_.rows, img_.cols, target_height, target_width);
+  auto chopper = ImageChopper<rows_num, columns_num>(img_.rows, img_.cols);
 
   Npp8u* img_ptr;
   size_t input_size = img_.rows * img_.cols * img_.channels() * sizeof(char);
@@ -77,7 +76,7 @@ TEST_F(ImagePreprocessingEndToEndTest, ChopAndResize1x3AndConvert) {
   cuda_dest_img.download(res);
 
   cv::Mat exp_u8 =
-      cv::imread("test_data/frames_0001_rescaled_1x3_720x1280.png");
+      cv::imread("test_data/frames_0001_rescaled_1x3_720x1408.png");
   cv::Mat exp;
   exp_u8.convertTo(exp, CV_32FC3);
 

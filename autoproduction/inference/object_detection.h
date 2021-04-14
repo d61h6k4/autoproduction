@@ -18,28 +18,29 @@ class ObjectDetectionModel {
  public:
   ObjectDetectionModel(const std::string& path_to_the_onnx_model,
                        int image_height, int image_width,
-                       int target_image_height, int target_image_width,
+                       int model_image_height, int model_image_width,
                        cudaStream_t cuda_stream, int device_id,
                        std::shared_ptr<nvinfer1::ILogger> logger)
-      : trt_engine_(path_to_the_onnx_model, CropNumHeight * CropNumWidth,
-                    target_image_height, target_image_width, 3, logger,
-                    cuda_stream),
-        image_chopper_(image_height, image_width, target_image_height,
-                       target_image_width),
-        image_dtype_converter_(target_image_height, target_image_width,
+      : image_chopper_(image_height, image_width),
+        image_dtype_converter_(image_chopper_.TargetHeight(),
+                               image_chopper_.TargetWidth(),
                                CropNumHeight * CropNumWidth),
-        chopped_image_detections_joiner_(image_height, image_width) {
-    size_t chopped_images_size = CropNumHeight * CropNumWidth *
-                                 target_image_height * target_image_width * 3 *
-                                 sizeof(Npp8u);
+        chopped_image_detections_joiner_(image_height, image_width),
+        trt_engine_(path_to_the_onnx_model, CropNumHeight * CropNumWidth,
+                    image_chopper_.TargetHeight(), image_chopper_.TargetWidth(),
+                    model_image_height, model_image_width, 3, logger,
+                    cuda_stream) {
+    size_t chopped_images_size =
+        CropNumHeight * CropNumWidth * image_chopper_.TargetHeight() *
+        image_chopper_.TargetWidth() * 3 * sizeof(Npp8u);
     auto st = cudaMalloc(reinterpret_cast<void**>(&chopped_images_),
                          chopped_images_size);
     if (st != cudaSuccess) {
       throw std::runtime_error("Could not allocate memory for chopped images");
     }
-    size_t float_images_size = CropNumHeight * CropNumWidth *
-                               target_image_height * target_image_width * 3 *
-                               sizeof(Npp32f);
+    size_t float_images_size =
+        CropNumHeight * CropNumWidth * image_chopper_.TargetHeight() *
+        image_chopper_.TargetWidth() * 3 * sizeof(Npp32f);
     st =
         cudaMalloc(reinterpret_cast<void**>(&float_images_), float_images_size);
     if (st != cudaSuccess) {
@@ -78,7 +79,6 @@ class ObjectDetectionModel {
   Npp32f* float_images_;
 
   NppStreamContext npp_stream_;
-  Autoproduction::Util::TrtEngine trt_engine_;
 
   Autoproduction::Preprocessing::ImageChopper<CropNumHeight, CropNumWidth>
       image_chopper_;
@@ -86,6 +86,8 @@ class ObjectDetectionModel {
   Autoproduction::Postprocessing::ChoppedImageDetectionsJoiner<CropNumHeight,
                                                                CropNumWidth>
       chopped_image_detections_joiner_;
+
+  Autoproduction::Util::TrtEngine trt_engine_;
 
   std::shared_ptr<nvinfer1::ILogger> logger_;
 };

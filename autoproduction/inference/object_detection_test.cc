@@ -44,15 +44,12 @@ class ObjectDetectionModelTest : public ::testing::Test {
 };
 
 TEST_F(ObjectDetectionModelTest, SanityCheck) {
-  int target_height = 800;
-  int target_width = 1280;
-
   constexpr int rows_num = 1;
-  constexpr int columns_num = 3;
+  constexpr int columns_num = 5;
   auto odmodel =
       Autoproduction::Inference::ObjectDetectionModel<rows_num, columns_num>(
-          path_to_the_model_, img_.rows, img_.cols, target_height, target_width,
-          cuda_stream_, 0, logger_);
+          path_to_the_model_, img_.rows, img_.cols, 640, 640, cuda_stream_, 0,
+          logger_);
 
   Npp8u* img_ptr;
   size_t input_size = img_.rows * img_.cols * img_.channels() * sizeof(char);
@@ -64,7 +61,7 @@ TEST_F(ObjectDetectionModelTest, SanityCheck) {
   cuda_img.upload(img_);
 
   auto dets = odmodel(img_ptr);
-  EXPECT_EQ(3 * 50, dets.size());
+  EXPECT_EQ(rows_num * columns_num * 100, dets.size());
 }
 
 }  // namespace Inference

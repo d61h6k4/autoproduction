@@ -6,7 +6,8 @@
 namespace Autoproduction {
 namespace Util {
 TrtEngine::TrtEngine(const std::string& path_to_the_model, int batch_size,
-                     int image_height, int image_width, int image_channel,
+                     int image_height, int image_width, int model_image_height,
+                     int model_image_width, int image_channel,
                      std::shared_ptr<nvinfer1::ILogger> logger,
                      cudaStream_t stream) {
   if (!logger) {
@@ -17,6 +18,9 @@ TrtEngine::TrtEngine(const std::string& path_to_the_model, int batch_size,
   batch_size_ = batch_size;
   image_height_ = image_height;
   image_width_ = image_width;
+
+  model_image_height_ = model_image_height;
+  model_image_width_ = model_image_width;
   image_channel_ = image_channel;
 
   cuda_stream_ = stream;
@@ -177,13 +181,13 @@ std::vector<Detections> TrtEngine::Postprocess(
           detection_ix * detection_boxes_size_;
       detections[batch_ix].push_back(
           Detection(detection_boxes[in_batch_detection_ix + 0] /
-                        static_cast<float>(image_height_),
+                        static_cast<float>(model_image_height_),
                     detection_boxes[in_batch_detection_ix + 1] /
-                        static_cast<float>(image_width_),
+                        static_cast<float>(model_image_width_),
                     detection_boxes[in_batch_detection_ix + 2] /
-                        static_cast<float>(image_height_),
+                        static_cast<float>(model_image_height_),
                     detection_boxes[in_batch_detection_ix + 3] /
-                        static_cast<float>(image_width_),
+                        static_cast<float>(model_image_width_),
                     scores[batch_output_start_ix + detection_ix],
                     classes[batch_output_start_ix + detection_ix]));
     }

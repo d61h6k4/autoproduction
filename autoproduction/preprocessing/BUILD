@@ -1,10 +1,10 @@
 cc_library(
-  name = "image_grid",
-  hdrs = ["image_grid.h"],
-  visibility = ["//visibility:public"],
-  deps = [
+    name = "image_grid",
+    hdrs = ["image_grid.h"],
+    visibility = ["//visibility:public"],
+    deps = [
         "@autoproduction_config_cuda//:cuda_headers",
-  ]
+    ],
 )
 
 cc_library(
@@ -37,7 +37,7 @@ cc_test(
         ":image_grid",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
-    ]
+    ],
 )
 
 cc_test(
@@ -46,13 +46,14 @@ cc_test(
     data = [
         "//test_data:test_images",
     ],
+    linkstatic = 1,
     deps = [
         ":image_chopper",
         "//autoproduction/utils:cuda_helper",
+        "@autoproduction_config_cuda//:cuda_runtime",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
-        "@opencv//:opencv",
-        "@autoproduction_config_cuda//:cuda_runtime"
+        "@opencv",
     ],
 )
 
@@ -62,13 +63,14 @@ cc_test(
     data = [
         "//test_data:test_images",
     ],
+    linkstatic = 1,
     deps = [
         ":image_chopper",
         ":image_dtype_converter",
         "//autoproduction/utils:cuda_helper",
+        "@autoproduction_config_cuda//:cuda_runtime",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
-        "@opencv//:opencv",
-        "@autoproduction_config_cuda//:cuda_runtime"
+        "@opencv",
     ],
 )

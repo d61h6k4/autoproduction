@@ -32,10 +32,9 @@ class ImageChopperTest : public ::testing::Test {
 };
 
 TEST_F(ImageChopperTest, SimpleResize) {
-  int target_height = 720;
-  int target_width = 1280;
-  auto chopper =
-      ImageChopper<1, 1>(img_.rows, img_.cols, target_height, target_width);
+  int target_height = 800;
+  int target_width = 3840;
+  auto chopper = ImageChopper<1, 1>(img_.rows, img_.cols);
 
   Npp8u* img_ptr;
   size_t input_size = img_.rows * img_.cols * img_.channels() * sizeof(char);
@@ -61,7 +60,7 @@ TEST_F(ImageChopperTest, SimpleResize) {
   cv::Mat res;
   cuda_dest_img.download(res);
 
-  cv::Mat exp = cv::imread("test_data/frames_0001_rescaled_1x1_720x1280.png");
+  cv::Mat exp = cv::imread("test_data/frames_0001.png");
 
   cv::Mat dst;
   cv::bitwise_xor(exp, res, dst);
@@ -75,9 +74,8 @@ TEST_F(ImageChopperTest, SimpleResize) {
 
 TEST_F(ImageChopperTest, ChopAndResize1x3) {
   int target_height = 800;
-  int target_width = 1280;
-  auto chopper =
-      ImageChopper<1, 3>(img_.rows, img_.cols, target_height, target_width);
+  int target_width = 1408;
+  auto chopper = ImageChopper<1, 3>(img_.rows, img_.cols);
 
   Npp8u* img_ptr;
   size_t input_size = img_.rows * img_.cols * img_.channels() * sizeof(char);
@@ -103,7 +101,7 @@ TEST_F(ImageChopperTest, ChopAndResize1x3) {
   cv::Mat res;
   cuda_dest_img.download(res);
 
-  cv::Mat exp = cv::imread("test_data/frames_0001_rescaled_1x3_720x1280.png");
+  cv::Mat exp = cv::imread("test_data/frames_0001_rescaled_1x3_720x1408.png");
 
   cv::Mat dst;
   cv::bitwise_xor(exp, res, dst);

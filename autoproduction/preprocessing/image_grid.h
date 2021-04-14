@@ -13,7 +13,7 @@ struct Grid {
     float overlap_size = 0.1;
 
     int step_height = image_height;
-    int target_height_ = image_height;
+    target_height_ = image_height;
     if (CropNumHeight > 1) {
       step_height = ceilf(static_cast<float>(image_height) /
                           static_cast<float>(CropNumHeight));
@@ -22,7 +22,7 @@ struct Grid {
     }
 
     int step_width = image_width;
-    int target_width_ = image_width;
+    target_width_ = image_width;
     if (CropNumWidth > 1) {
       step_width = ceilf(static_cast<float>(image_width) /
                          static_cast<float>(CropNumWidth));
@@ -57,6 +57,8 @@ struct Grid {
   }
 
   std::array<NppiRect, CropNumHeight * CropNumWidth> cells_;
+  int target_height_;
+  int target_width_;
 };
 }  // namespace Preprocessing
 }  // namespace Autoproduction

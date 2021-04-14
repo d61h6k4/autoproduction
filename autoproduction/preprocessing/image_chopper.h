@@ -19,21 +19,22 @@ namespace Preprocessing {
 template <int CropNumHeight, int CropNumWidth>
 class ImageChopper {
  public:
-  ImageChopper(int image_height, int image_width, int target_image_height,
-               int target_image_width)
+  ImageChopper(int image_height, int image_width)
       : image_grid_(image_height, image_width),
         image_height_(image_height),
-        image_width_(image_width),
-        target_image_height_(target_image_height),
-        target_image_width_(target_image_width) {}
+        image_width_(image_width) {}
+
+  int TargetHeight() const noexcept { return image_grid_.target_height_; }
+  int TargetWidth() const noexcept { return image_grid_.target_width_; }
 
   NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst, NppStreamContext ctx) {
     constexpr int channel_num = 3;
 
     NppStatus st;
     std::size_t dst_ix = 0;
-    const std::size_t target_image_size =
-        target_image_height_ * target_image_width_ * channel_num * sizeof(char);
+    const std::size_t target_image_size = image_grid_.target_height_ *
+                                          image_grid_.target_width_ *
+                                          channel_num * sizeof(char);
     for (std::size_t ix = 0; ix < CropNumHeight * CropNumWidth; ++ix) {
       dst_ix = ix * target_image_size;
 
@@ -41,13 +42,13 @@ class ImageChopper {
           p_src, image_width_ * channel_num,
           NppiSize{.width = image_width_, .height = image_height_},
           image_grid_.cells_[ix], p_dst + dst_ix,
-          target_image_width_ * channel_num,
-          NppiSize{.width = target_image_width_,
-                   .height = target_image_height_},
+          image_grid_.target_width_ * channel_num,
+          NppiSize{.width = image_grid_.target_width_,
+                   .height = image_grid_.target_height_},
           NppiRect{.x = 0,
                    .y = 0,
-                   .width = target_image_width_,
-                   .height = target_image_height_},
+                   .width = image_grid_.target_width_,
+                   .height = image_grid_.target_height_},
           NPPI_INTER_NN, ctx);
       if (st != NPP_SUCCESS) {
         return st;
@@ -60,8 +61,6 @@ class ImageChopper {
   Grid<CropNumHeight, CropNumWidth> image_grid_;
   int image_height_;
   int image_width_;
-  int target_image_height_;
-  int target_image_width_;
 };
 
 // Special version of image chopper because
@@ -70,20 +69,14 @@ class ImageChopper {
 template <>
 class ImageChopper<1, 1> {
  public:
-  ImageChopper(int image_height, int image_width, int target_image_height,
-               int target_image_width)
-      : image_height_(image_height),
-        image_width_(image_width),
-        target_image_height_(target_image_height),
-        target_image_width_(target_image_width) {}
+  ImageChopper(int image_height, int image_width)
+      : image_height_(image_height), image_width_(image_width) {}
 
   NppStatus operator()(const Npp8u* p_src, Npp8u* p_dst, NppStreamContext ctx);
 
  private:
   int image_height_;
   int image_width_;
-  int target_image_height_;
-  int target_image_width_;
 };
 }  // namespace Preprocessing
 }  // namespace Autoproduction
