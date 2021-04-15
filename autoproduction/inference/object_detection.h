@@ -17,7 +17,7 @@ template <int CropNumHeight, int CropNumWidth>
 class ObjectDetectionModel {
  public:
   ObjectDetectionModel(const std::string& path_to_the_onnx_model,
-                       int image_height, int image_width,
+                       bool is_engine, int image_height, int image_width,
                        int model_image_height, int model_image_width,
                        cudaStream_t cuda_stream, int device_id,
                        std::shared_ptr<nvinfer1::ILogger> logger)
@@ -26,10 +26,10 @@ class ObjectDetectionModel {
                                image_chopper_.TargetWidth(),
                                CropNumHeight * CropNumWidth),
         chopped_image_detections_joiner_(image_height, image_width),
-        trt_engine_(path_to_the_onnx_model, CropNumHeight * CropNumWidth,
-                    image_chopper_.TargetHeight(), image_chopper_.TargetWidth(),
-                    model_image_height, model_image_width, 3, logger,
-                    cuda_stream) {
+        trt_engine_(path_to_the_onnx_model, is_engine,
+                    CropNumHeight * CropNumWidth, image_chopper_.TargetHeight(),
+                    image_chopper_.TargetWidth(), model_image_height,
+                    model_image_width, 3, logger, cuda_stream) {
     size_t chopped_images_size =
         CropNumHeight * CropNumWidth * image_chopper_.TargetHeight() *
         image_chopper_.TargetWidth() * 3 * sizeof(Npp8u);

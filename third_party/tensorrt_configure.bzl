@@ -35,7 +35,7 @@ cc_library(
 
 cc_library(
     name = "tensorrt_infer",
-    srcs = ["libs/libnvinfer.so"],
+    srcs = ["libs/libnvinfer.so", "libs/libnvinfer_plugin.so"],
     linkopts = ["-ldl"],
 )
 

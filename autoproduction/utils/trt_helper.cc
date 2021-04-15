@@ -3,11 +3,14 @@
 
 #include "NvOnnxParser.h"
 
+#include <fstream>
+
 namespace Autoproduction {
 namespace Util {
-TrtEngine::TrtEngine(const std::string& path_to_the_model, int batch_size,
-                     int image_height, int image_width, int model_image_height,
-                     int model_image_width, int image_channel,
+TrtEngine::TrtEngine(const std::string& path_to_the_model, bool is_engine,
+                     int batch_size, int image_height, int image_width,
+                     int model_image_height, int model_image_width,
+                     int image_channel,
                      std::shared_ptr<nvinfer1::ILogger> logger,
                      cudaStream_t stream) {
   if (!logger) {
@@ -25,51 +28,78 @@ TrtEngine::TrtEngine(const std::string& path_to_the_model, int batch_size,
 
   cuda_stream_ = stream;
 
-  BuildEngine(path_to_the_model);
+  BuildEngine(path_to_the_model, is_engine);
   SetModel();
 }
 
-void TrtEngine::BuildEngine(const std::string& path_to_the_model) {
-  auto builder = std::unique_ptr<nvinfer1::IBuilder, InferDeleter>(
-      nvinfer1::createInferBuilder(*logger_));
-  const auto explicit_batch =
-      1U << static_cast<uint32_t>(
-          nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-  auto network = std::unique_ptr<nvinfer1::INetworkDefinition, InferDeleter>(
-      builder->createNetworkV2(explicit_batch));
-  auto parser = std::unique_ptr<nvonnxparser::IParser, InferDeleter>(
-      nvonnxparser::createParser(*network, *logger_));
-  parser->parseFromFile(
-      path_to_the_model.c_str(),
-      static_cast<int>(nvinfer1::ILogger::Severity::kWARNING));
+void TrtEngine::BuildEngine(const std::string& path_to_the_model,
+                            bool is_engine) {
+  if (is_engine) {
+    // De-serialize engine from file
+    std::ifstream engine_file(path_to_the_model, std::ios::binary);
+    if (engine_file.fail()) {
+      throw std::runtime_error("Failed to open engine file.");
+    }
 
-  if (parser->getNbErrors() > 0) {
-    throw std::runtime_error(parser->getError(0)->desc());
+    engine_file.seekg(0, std::ifstream::end);
+    auto fsize = engine_file.tellg();
+    engine_file.seekg(0, std::ifstream::beg);
+
+    std::vector<char> engineData(fsize);
+    engine_file.read(engineData.data(), fsize);
+
+    std::unique_ptr<nvinfer1::IRuntime, InferDeleter> runtime{
+        nvinfer1::createInferRuntime(*logger_)};
+
+    initLibNvInferPlugins(logger_.get(), "");
+    engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(
+        runtime->deserializeCudaEngine(engineData.data(), fsize, nullptr),
+        InferDeleter());
+    if (engine_.get() == nullptr) {
+      throw std::runtime_error("Failed to deserialize engine.");
+    }
+  } else {
+    auto builder = std::unique_ptr<nvinfer1::IBuilder, InferDeleter>(
+        nvinfer1::createInferBuilder(*logger_));
+    const auto explicit_batch =
+        1U << static_cast<uint32_t>(
+            nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+    auto network = std::unique_ptr<nvinfer1::INetworkDefinition, InferDeleter>(
+        builder->createNetworkV2(explicit_batch));
+    auto parser = std::unique_ptr<nvonnxparser::IParser, InferDeleter>(
+        nvonnxparser::createParser(*network, *logger_));
+    parser->parseFromFile(
+        path_to_the_model.c_str(),
+        static_cast<int>(nvinfer1::ILogger::Severity::kWARNING));
+
+    if (parser->getNbErrors() > 0) {
+      throw std::runtime_error(parser->getError(0)->desc());
+    }
+
+    auto config = std::unique_ptr<nvinfer1::IBuilderConfig, InferDeleter>(
+        builder->createBuilderConfig());
+    // 1024 MB
+    config->setMaxWorkspaceSize(1 << 30);
+    if (builder->platformHasFastFp16()) {
+      config->setFlag(nvinfer1::BuilderFlag::kFP16);
+    }
+    builder->setMaxBatchSize(batch_size_);
+
+    auto profile = builder->createOptimizationProfile();
+    auto input_name = network->getInput(0)->getName();
+    profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kMIN,
+                           nvinfer1::Dims4{batch_size_, image_height_,
+                                           image_width_, image_channel_});
+    profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kOPT,
+                           nvinfer1::Dims4{batch_size_, image_height_,
+                                           image_width_, image_channel_});
+    profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kMAX,
+                           nvinfer1::Dims4{batch_size_, image_height_,
+                                           image_width_, image_channel_});
+    config->addOptimizationProfile(profile);
+    engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(
+        builder->buildEngineWithConfig(*network, *config), InferDeleter());
   }
-
-  auto config = std::unique_ptr<nvinfer1::IBuilderConfig, InferDeleter>(
-      builder->createBuilderConfig());
-  // 1024 MB
-  config->setMaxWorkspaceSize(1 << 30);
-  if (builder->platformHasFastFp16()) {
-    config->setFlag(nvinfer1::BuilderFlag::kFP16);
-  }
-  builder->setMaxBatchSize(batch_size_);
-
-  auto profile = builder->createOptimizationProfile();
-  auto input_name = network->getInput(0)->getName();
-  profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kMIN,
-                         nvinfer1::Dims4{batch_size_, image_height_,
-                                         image_width_, image_channel_});
-  profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kOPT,
-                         nvinfer1::Dims4{batch_size_, image_height_,
-                                         image_width_, image_channel_});
-  profile->setDimensions(input_name, nvinfer1::OptProfileSelector::kMAX,
-                         nvinfer1::Dims4{batch_size_, image_height_,
-                                         image_width_, image_channel_});
-  config->addOptimizationProfile(profile);
-  engine_ = std::shared_ptr<nvinfer1::ICudaEngine>(
-      builder->buildEngineWithConfig(*network, *config), InferDeleter());
 }
 
 void TrtEngine::SetModel() {

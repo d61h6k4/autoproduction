@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "NvInfer.h"
+#include "NvInferPlugin.h"
 #include "autoproduction/utils/detection.h"
 
 namespace Autoproduction {
@@ -23,16 +24,16 @@ using Detections = std::vector<Detection>;
 
 class TrtEngine {
  public:
-  TrtEngine(const std::string& path_to_the_model, int batch_size,
-            int image_height, int image_width, int model_image_height,
-            int model_image_width, int image_channel,
+  TrtEngine(const std::string& path_to_the_model, bool is_engine,
+            int batch_size, int image_height, int image_width,
+            int model_image_height, int model_image_width, int image_channel,
             std::shared_ptr<nvinfer1::ILogger> logger, cudaStream_t stream);
   ~TrtEngine();
 
   std::vector<Detections> operator()(float* img);
 
  private:
-  void BuildEngine(const std::string& path_to_the_model);
+  void BuildEngine(const std::string& path_to_the_model, bool is_engine);
   void SetModel();
   std::vector<Detections> Postprocess(const std::vector<float>& detection_boxes,
                                       const std::vector<float>& scores,
