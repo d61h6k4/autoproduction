@@ -16,7 +16,7 @@ namespace Autoproduction {
 namespace Util {
 namespace {
 struct Logger : public nvinfer1::ILogger {
-  void log(nvinfer1::ILogger::Severity severity, const char* msg) override {
+  void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override  {
     if (severity != nvinfer1::ILogger::Severity::kVERBOSE) {
       std::clog << msg << "\n";
     }
@@ -36,7 +36,7 @@ class TrtEngineTest : public ::testing::Test {
 
     logger_ = std::make_shared<Logger>();
 
-    img_ = cv::imread("test_data/football_0001.png", cv::IMREAD_COLOR);
+    img_ = cv::imread("test_data/frames_0001.png", cv::IMREAD_COLOR);
     ctx_ = Autoproduction::Util::fromCudaStreamAndDeviceId(cuda_stream_,
                                                            device_id);
   }
