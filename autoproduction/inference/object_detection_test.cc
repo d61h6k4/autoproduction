@@ -12,7 +12,8 @@ namespace Autoproduction {
 namespace Inference {
 namespace {
 struct Logger : public nvinfer1::ILogger {
-  void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override  {
+  void log(nvinfer1::ILogger::Severity severity,
+           const char* msg) noexcept override {
     if (severity != nvinfer1::ILogger::Severity::kVERBOSE) {
       std::clog << msg << "\n";
     }
@@ -37,8 +38,7 @@ class ObjectDetectionModelTest : public ::testing::Test {
   }
   cudaStream_t cuda_stream_;
   std::shared_ptr<Logger> logger_;
-  std::string path_to_the_model_ =
-      "models/object_detection_football.onnx";
+  std::string path_to_the_model_ = "models/object_detection_football.onnx";
 
   cv::Mat img_;
   NppStreamContext ctx_;

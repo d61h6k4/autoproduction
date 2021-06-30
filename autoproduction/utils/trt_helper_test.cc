@@ -16,7 +16,8 @@ namespace Autoproduction {
 namespace Util {
 namespace {
 struct Logger : public nvinfer1::ILogger {
-  void log(nvinfer1::ILogger::Severity severity, const char* msg) noexcept override  {
+  void log(nvinfer1::ILogger::Severity severity,
+           const char* msg) noexcept override {
     if (severity != nvinfer1::ILogger::Severity::kVERBOSE) {
       std::clog << msg << "\n";
     }
